@@ -1,8 +1,8 @@
 package app
 
-  import org.apache.spark.sql.expressions.Window
-  import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
-  import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 
 
 object Main {
@@ -12,9 +12,8 @@ object Main {
     val posSchema = StructType(StructField("posId", StringType) :: StructField("accountKey", StringType) :: StructField("positionValue", DoubleType) :: StructField("posdate", StringType) :: Nil)
     val tranSchema = StructType(StructField("tranId", StringType) :: StructField("accountKey", StringType) :: StructField("transactionValue", DoubleType) :: StructField("trandate", StringType) :: Nil)
 
-    val posDf: Dataset[Position] = spark.read.option("header", "true").schema(posSchema).csv("src/main/scala/data/position.csv").as[Position]
-    val accDesc = spark.read.option("header", "true").schema(posSchema).csv("src/main/scala/data/accDesc.csv")
-    val tranDf = spark.read.option("header", "true").schema(tranSchema).csv("src/main/scala/data/transaction.csv").as[Transaction]
+    val posDf: Dataset[Position] = spark.read.option("header", "true").schema(posSchema).csv("src/main/scala/data/sample/sept01/position.csv", "src/main/scala/data/sample/sept02/position.csv").as[Position]
+    val tranDf = spark.read.option("header", "true").schema(tranSchema).csv("src/main/scala/data/sample/sept01/transaction.csv", "src/main/scala/data/sample/sept02/transaction.csv").as[Transaction]
 
     val window = Window.partitionBy("accountKey").orderBy("posdate")
 
@@ -28,7 +27,7 @@ object Main {
 
     val joined = aggTransactions
       .join(df, aggTransactions.col("accountKey") === posDf.col("accountKey"))
-      .filter($"posdate" === "06/09/2018")
+      .filter($"posdate" === "02/09/2018")
       .withColumn("ReconPassed", $"sum(transactionValue)" <=> $"diff")
     df.show()
     aggTransactions.show()
