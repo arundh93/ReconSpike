@@ -1,6 +1,8 @@
-import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+package app
+
+  import org.apache.spark.sql.expressions.Window
+  import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
+  import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 
 
 object Main {
@@ -10,9 +12,9 @@ object Main {
     val posSchema = StructType(StructField("posId", StringType) :: StructField("accountKey", StringType) :: StructField("positionValue", DoubleType) :: StructField("posdate", StringType) :: Nil)
     val tranSchema = StructType(StructField("tranId", StringType) :: StructField("accountKey", StringType) :: StructField("transactionValue", DoubleType) :: StructField("trandate", StringType) :: Nil)
 
-    val posDf: Dataset[Position] = spark.read.option("header", "true").schema(posSchema).csv("/Users/arundh/Documents/position.csv").as[Position]
-    val accDesc = spark.read.option("header", "true").schema(posSchema).csv("/Users/arundh/Documents/accDesc.csv")
-    val tranDf = spark.read.option("header", "true").schema(tranSchema).csv("/Users/arundh/Documents/transaction.csv").as[Transaction]
+    val posDf: Dataset[Position] = spark.read.option("header", "true").schema(posSchema).csv("src/main/scala/data/position.csv").as[Position]
+    val accDesc = spark.read.option("header", "true").schema(posSchema).csv("src/main/scala/data/accDesc.csv")
+    val tranDf = spark.read.option("header", "true").schema(tranSchema).csv("src/main/scala/data/transaction.csv").as[Transaction]
 
     val window = Window.partitionBy("accountKey").orderBy("posdate")
 
