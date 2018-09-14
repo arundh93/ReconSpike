@@ -1,3 +1,3 @@
-﻿posId,accountKey,positionValue,posdate
+﻿positionId,accountKey,positionValue,positionDate
 1,1,100,01/09/2018
-2,2,80,01/09/2018
+2,2,50,01/09/2018

@@ -1,4 +1,4 @@
-﻿tranId,accountKey,transactionValue,trandate
+﻿transactionId,accountKey,transactionValue,transactionDate
 1,1,40,02/09/18
 2,1,60,02/09/18
 3,2,10,02/09/18
