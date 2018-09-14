@@ -1,5 +1,6 @@
 package app
 
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.execution.datasources.hbase.HBaseTableCatalog
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
@@ -10,16 +11,27 @@ object Main {
     val spark = SparkSession.builder().master("local[*]").getOrCreate()
     import spark.implicits._
     val posSchema = StructType(
-      StructField("positionId", StringType) :: StructField("accountKey", StringType) :: StructField("positionValue", DoubleType) :: StructField(
-        "positionDate",
-        StringType
-      ) :: Nil
+      Array(
+        StructField("positionId", StringType),
+        StructField("accountKey", StringType),
+        StructField("positionValue", DoubleType),
+        StructField("positionDate", StringType)
+      )
     )
+
     val tranSchema = StructType(
-      StructField("transactionId", StringType) :: StructField("accountKey", StringType) :: StructField(
-        "transactionValue",
-        DoubleType
-      ) :: StructField("transactionDate", StringType) :: Nil
+      Array(
+        StructField("transactionId", StringType),
+        StructField("accountKey", StringType),
+        StructField("transactionValue", DoubleType),
+        StructField("transactionDate", StringType)
+      )
+    )
+
+    val dateSchema = StructType(
+      Array(
+        StructField("busdate", StringType)
+      )
     )
 
     val posDf: Dataset[Position] = spark.read
@@ -35,9 +47,17 @@ object Main {
       .csv("src/main/scala/data/sample/sept01/transaction.csv", "src/main/scala/data/sample/sept02/transaction.csv")
       .as[Transaction]
 
-    val window = Window.partitionBy("accountKey").orderBy("positionDate")
+    val busDate: Array[String] = spark.read
+      .option("header", "true")
+      .schema(dateSchema)
+      .csv("src/main/scala/data/sample/date.csv")
+      .as[String]
+      .collect()
+
+    val busDateBroadcasted: Broadcast[Array[String]] = spark.sparkContext.broadcast(busDate)
 
     import org.apache.spark.sql.functions._
+    val window = Window.partitionBy("accountKey").orderBy("positionDate")
 
     val positionDiffDf = posDf
       .withColumn("previous_position", lag("positionValue", 1, 0).over(window))
@@ -58,12 +78,13 @@ object Main {
     positionDiffDf.show()
     aggTransactions.show()
     val hbaseResult = resultDf
-      .select("tran.accountKey","positionValue", "ReconPassed")
+      .select("tran.accountKey", "positionValue", "ReconPassed")
 
     hbaseResult.show()
     hbaseResult.write
       .options(Map(HBaseTableCatalog.tableCatalog -> reconCatalog, HBaseTableCatalog.newTable -> "5"))
-      .format("org.apache.spark.sql.execution.datasources.hbase").save()
+      .format("org.apache.spark.sql.execution.datasources.hbase")
+      .save()
 
   }
 
@@ -82,3 +103,5 @@ object Main {
 case class Position(positionId: String, accountKey: String, positionValue: Double, positionDate: String)
 
 case class Transaction(transactionId: String, accountKey: String, transactionValue: Double, transactionDate: String)
+
+case class BusDate(busdate: String)
