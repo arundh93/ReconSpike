@@ -1,5 +1,6 @@
 package app
 
+import org.apache.spark.sql.execution.datasources.hbase.HBaseTableCatalog
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
@@ -56,11 +57,26 @@ object Main {
     tranDf.show()
     positionDiffDf.show()
     aggTransactions.show()
-    resultDf
-      .select("tran.accountKey", "previous_position", "aggTransactions", "positionValue", "ReconPassed")
-      .show()
+    val hbaseResult = resultDf
+      .select("tran.accountKey","positionValue", "ReconPassed")
+
+    hbaseResult.show()
+    hbaseResult.write
+      .options(Map(HBaseTableCatalog.tableCatalog -> reconCatalog, HBaseTableCatalog.newTable -> "5"))
+      .format("org.apache.spark.sql.execution.datasources.hbase").save()
 
   }
+
+  def reconCatalog: String =
+    s"""{
+       |"table":{"namespace":"default", "name":"ReconResult"},
+       |"rowkey":"accountKey",
+       |"columns":{
+       |"accountKey":{"cf":"rowkey", "col":"accountKey", "type":"string"},
+       |"positionValue":{"cf":"rkey", "col":"positionValue", "type":"double"},
+       |"ReconPassed":{"cf":"r1key", "col":"ReconPassed", "type":"boolean"}
+       |}
+       |}""".stripMargin
 }
 
 case class Position(positionId: String, accountKey: String, positionValue: Double, positionDate: String)
